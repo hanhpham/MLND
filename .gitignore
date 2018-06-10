@@ -1,7 +1,5 @@
 .DS_Store
 *error.txt
-projects/capstone/data/ny_times/all/*
-projects/capstone/stock_predictions_notes
-projects/capstone/data/GOOG_short.csv
+
 
 

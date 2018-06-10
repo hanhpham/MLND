@@ -1,0 +1,2 @@
+This directory contains metadata for NY Times articles from 2004 to 2016 that mention Google in its abstract, snippet, or leading paragraph. This has been gathered through the public API below, please refer to its documentation for usage restrictions of this data:
+https://github.com/NYTimes/public_api_specs/blob/master/archive_api/archive_api.md
