@@ -10,8 +10,6 @@ Filter collected NY Times data to retain only those that mention at least one of
 
 """
 
-# years = [2004]
-# months = [12]
 years = [2016, 2015, 2014, 2013, 2012, 2011, 2010, 2009, 2008, 2007, 2006, 2005, 2004]
 months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 search_terms = ['Google', 'GOOGLE']
@@ -25,9 +23,16 @@ for year in years:
         
         file_str = './data/ny_times/all/' + \
             str(year) + '-' + '{:02}'.format(month) + '.json'
+        out_file_str = './data/ny_times/google/' + \
+            str(year) + '-' + '{:02}'.format(month) + '.json'
+        error_log_str = './data/ny_times/google/' + \
+            str(year) + '-' + '{:02}'.format(month) + '_error.txt'
+
         with open(file_str, 'r') as f_in:
             mydict = json.load(f_in)
         f_in.close()
+
+        f_error_out = open(error_log_str, 'w')
 
         print "Processing " + str(year) + '-' + '{:02}'.format(month)
 
@@ -35,11 +40,17 @@ for year in years:
         articles_retained = []
         count = 0
         for article in articles:
-            main_headline = unicode(article['headline']['main'])
-            snippet = unicode(article['snippet'])
-            abstract = unicode(article['abstract'])
-            lead_paragraph = unicode(article['lead_paragraph'])
-
+            try:
+                main_headline = unicode(article['headline']['main'])
+                snippet = unicode(article['snippet'])
+                abstract = unicode(article['abstract'])
+                lead_paragraph = unicode(article['lead_paragraph'])
+            except Exception as e:  # some 'docs' elements are not articles, e.g. "Interactive Feature", ignore
+                print(str(e))
+                f_error_out.write('\n Exception: ' + str(e) + '\n')
+                json.dump(article, f_error_out)
+                continue
+         
             search_term_found = False
             for term in search_terms:
                 if (term in main_headline) or (term in snippet) or (term in abstract) or (term in lead_paragraph):
@@ -53,11 +64,11 @@ for year in years:
 
         mydict['response']['docs'] = articles_retained
         mydict['response']['meta']['hits'] = count
-        out_file_str = './data/ny_times/google/' + \
-            str(year) + '-' + '{:02}'.format(month) + '.json'
 
         with open(out_file_str, 'w') as fout:
             json.dump(mydict, fout)
         fout.close()
+
+        f_error_out.close()
 
         
