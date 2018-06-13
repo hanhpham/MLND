@@ -1,5 +1,5 @@
 import sys
-import csv
+import os
 import json
 reload(sys)
 sys.setdefaultencoding('utf8')
@@ -23,20 +23,20 @@ for year in years:
         
         file_str = './data/ny_times/all/' + \
             str(year) + '-' + '{:02}'.format(month) + '.json'
-        out_file_str = './data/ny_times/google/' + \
+        out_file_str = './data/ny_times/google/articles/' + \
             str(year) + '-' + '{:02}'.format(month) + '.json'
-        error_log_str = './data/ny_times/google/' + \
+        error_log_str = './data/ny_times/google/articles/' + \
             str(year) + '-' + '{:02}'.format(month) + '_error.txt'
 
         with open(file_str, 'r') as f_in:
-            mydict = json.load(f_in)
+            articles_dict = json.load(f_in)
         f_in.close()
 
         f_error_out = open(error_log_str, 'w')
 
         print "Processing " + str(year) + '-' + '{:02}'.format(month)
 
-        articles = mydict['response']['docs']
+        articles = articles_dict['response']['docs']
         articles_retained = []
         count = 0
         for article in articles:
@@ -62,13 +62,15 @@ for year in years:
                 count += 1
                 print(unicode(count) + '\t' + main_headline + '\n')
 
-        mydict['response']['docs'] = articles_retained
-        mydict['response']['meta']['hits'] = count
+        articles_dict['response']['docs'] = articles_retained
+        articles_dict['response']['meta']['hits'] = count
 
         with open(out_file_str, 'w') as fout:
-            json.dump(mydict, fout)
+            json.dump(articles_dict, fout)
         fout.close()
 
         f_error_out.close()
+        if os.path.getsize(error_log_str) == 0:
+            os.remove(error_log_str)
 
         
