@@ -10,7 +10,7 @@ from dateutil.tz import tzutc
 from datetime import datetime, date, time, timedelta
 
 """
-Generate analysis of article data, including sentiment scores for selected text. Output will contain a list of dictionaries of the form:
+Generate analysis of article data, including sentiment scores for selected text. Output JSON file will contain a list of dictionaries of the form:
     [
         {'headline':*, 'pub_date':*, 'trade_date':*, 'headline_senti':*, 'summary_senti':*, 'headline_summary_senti':*, 'lead_paragraph_senti':*, 'search_term_in_headline':*, 'search_term_in_summary':* }, 
         {...},
@@ -62,7 +62,7 @@ for year in years:
         result_set = []
         articles = articles_dict['response']['docs']
 
-        # analyze each article
+        # analyze articles
         for article in articles:
             article_ana = {}
             
@@ -72,11 +72,10 @@ for year in years:
                 
                 article_ana['pub_date'] = unicode(article['pub_date'])
                 pub_datetime = parse(article_ana['pub_date'])
-                # pub_date = date(pub_datetime.year, pub_datetime.month, pub_datetime.day)
-                # pub_time = time(pub_datetime.hour, pub_datetime.minute, tzinfo=pub_datetime.tzinfo)
-                # effective trading day close time = 21:00UTC - market_reaction_time_min
+
+                # trading day close time for NYSE, NASDAQ = 21:00UTC
                 trade_datetime_close = datetime.combine(pub_datetime.date(), time(21,0, tzinfo=tzutc()))
-                # article is associate with the next trading day if its publication time is on or after the effective trading day's close time
+                # article is associated with the next trading day if its publication time is on or after the effective trading day's close time (close time - market_reaction_time_min)
                 trade_date = pub_datetime.date() if pub_datetime + \
                     timedelta(seconds=market_reaction_time_min_seconds) < trade_datetime_close else (pub_datetime + timedelta(days=1)).date()
                 article_ana['trade_date'] = unicode(trade_date)
