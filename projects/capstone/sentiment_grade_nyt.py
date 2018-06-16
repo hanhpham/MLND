@@ -12,7 +12,7 @@ from datetime import datetime, date, time, timedelta
 """
 Generate analysis of article data, including sentiment scores for selected text. Output JSON file will contain a list of dictionaries of the form:
     [
-        {'_id':*, 'headline':*, 'pub_date':*, 'trade_date':*, 'headline_senti':*, 'summary_senti':*, 'headline_summary_senti':*, 'lead_paragraph_senti':*, 'search_term_in_headline':*, 'search_term_in_summary':* , 'org_keyword_rank':* }, 
+        {'_id':*, 'headline':*, 'pub_date':*, 'trade_date':*, 'headline_senti':*, 'summary_senti':*, 'headline_summary_senti':*, 'lead_paragraph_senti':*, 'keyword_in_headline':*, 'keyword_in_summary':* , 'keyword_org_rank':* }, 
         {...},
         ...
     ]
@@ -28,9 +28,9 @@ Generate analysis of article data, including sentiment scores for selected text.
     - summary_senti: sentiment score for the abstract, or snippet if abstract unavailable
     - headline_summary_senti: sentiment score for the concatenated text of the headline followed by the summary
     - lead_paragraph_senti:''' 
-    - search_term_in_headline: 1 if found in headline, 0 otherwise
-    - search_term_in_summary: '''
-    - org_keyword_rank: if Google was mentioned under the keyword 'organization' along with N other organizations, the rank is 1/N; 0 if the Google was not mentioned
+    - keyword_in_headline: 1 if found in headline, 0 otherwise
+    - keyword_in_summary: '''
+    - keyword_org_rank: if Google was mentioned under the keyword 'organization' along with N other organizations, the rank is 1/N; 0 if the Google was not mentioned
 
 """
 
@@ -61,7 +61,7 @@ for year in years:
 
         print "Processing " + str(year) + '-' + '{:02}'.format(month)
 
-        result_set = []
+        result_set = {}
         articles = articles_dict['response']['docs']
 
         # analyze articles
@@ -94,24 +94,25 @@ for year in years:
                 article_ana['summary_senti'] = sid.polarity_scores(summary)['compound']
 
                 article_ana['headline_summary_senti'] = sid.polarity_scores(article_ana['headline'] + '. ' + summary)['compound']
-                article_ana['search_term_in_headline'] = 1 if ('Google' in article_ana['headline'] or 'GOOGLE' in article_ana['headline']) else 0
-                article_ana['search_term_in_summary'] =  1 if ('Google' in summary or 'GOOGLE' in summary) else 0
+                article_ana['keyword_in_headline'] = 1 if ('Google' in article_ana['headline'] or 'GOOGLE' in article_ana['headline']) else 0
+                article_ana['keyword_in_summary'] =  1 if ('Google' in summary or 'GOOGLE' in summary) else 0
 
                 keywords = article['keywords']
                 org_keywords = [word['value'] for word in keywords if word['name'] == 'organizations']
-                org_keyword_rank = 0.0
+                keyword_org_rank = 0.0
                 try:
-                    org_keyword_rank = sum([1 for word in org_keywords if ('Google' in word or 'GOOGLE' in word)])/float(len(org_keywords))
+                    keyword_org_rank = sum([1 for word in org_keywords if ('Google' in word or 'GOOGLE' in word)])/float(len(org_keywords))
                 except ZeroDivisionError:
                     pass
-
+                article_ana['keyword_org_rank'] = keyword_org_rank
+                
             except Exception as e:  # some 'docs' elements are not articles, e.g. "Interactive Feature", ignore
                 print(str(e))
                 f_error_out.write('\n Exception: ' + str(e) + '\n')
                 json.dump(article, f_error_out)
                 continue
 
-            result_set.append(article_ana)
+            result_set[article_ana['_id']] = article_ana
 
         with open(out_file_str, 'w') as fout:
             json.dump(result_set, fout)
