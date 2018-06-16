@@ -12,15 +12,16 @@ from datetime import datetime, date, time, timedelta
 """
 Generate analysis of article data, including sentiment scores for selected text. Output JSON file will contain a list of dictionaries of the form:
     [
-        {'headline':*, 'pub_date':*, 'trade_date':*, 'headline_senti':*, 'summary_senti':*, 'headline_summary_senti':*, 'lead_paragraph_senti':*, 'search_term_in_headline':*, 'search_term_in_summary':* }, 
+        {'_id':*, 'headline':*, 'pub_date':*, 'trade_date':*, 'headline_senti':*, 'summary_senti':*, 'headline_summary_senti':*, 'lead_paragraph_senti':*, 'search_term_in_headline':*, 'search_term_in_summary':* , 'org_keyword_rank':* }, 
         {...},
         ...
     ]
 
     keys & values:
+    - _id: article id
     - headline: original text of the main headline
     - pub_date: article's publishing date and time
-    - trade_date is the immediate trading day that could've been affected by the article based on its publishing date, taken to be:
+    - trade_date: the immediate trading day that overlaps the article's publishing date, taken to be:
         - pub_date if:  pub_datetime < (closing time of trade_date) - (minimum market reaction time)
         - pub_date +1, otherwise  
     - headline_senti: sentiment score for the headline            
@@ -29,6 +30,7 @@ Generate analysis of article data, including sentiment scores for selected text.
     - lead_paragraph_senti:''' 
     - search_term_in_headline: 1 if found in headline, 0 otherwise
     - search_term_in_summary: '''
+    - org_keyword_rank: if Google was mentioned under the keyword 'organization' along with N other organizations, the rank is 1/N; 0 if the Google was not mentioned
 
 """
 
@@ -37,7 +39,7 @@ years = [2016, 2015, 2014, 2013, 2012, 2011,
          2010, 2009, 2008, 2007, 2006, 2005, 2004]
 months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
-market_reaction_time_min_seconds = 0
+market_reaction_time_min_seconds = 0  # to be determined
 
 sid = SentimentIntensityAnalyzer()
 
@@ -67,8 +69,9 @@ for year in years:
             article_ana = {}
             
             try:
+                article_ana['_id'] = unicode(article['_id'])
                 article_ana['headline'] = unicode(article['headline']['main'])
-                article_ana['headline_senti'] = sid.polarity_scores(article_ana['headline'])
+                article_ana['headline_senti'] = sid.polarity_scores(article_ana['headline'])['compound']
                 
                 article_ana['pub_date'] = unicode(article['pub_date'])
                 pub_datetime = parse(article_ana['pub_date'])
@@ -81,18 +84,26 @@ for year in years:
                 article_ana['trade_date'] = unicode(trade_date)
                 
                 lead_paragraph = unicode(article['lead_paragraph'])
-                article_ana['lead_paragraph_senti'] = sid.polarity_scores(lead_paragraph)
+                article_ana['lead_paragraph_senti'] = sid.polarity_scores(lead_paragraph)['compound']
 
                 if article['abstract'] is None and article['snippet'] is None:
                     f_error_out.write('No summary available for \'' + article_ana['headline'] + '\'')
                     continue  # skip over this article
                 # will substitute abstract with snippet if abstract unavailable
                 summary = unicode(article['abstract']) if article['abstract'] is not None else unicode(article['snippet'])
-                article_ana['summary_senti'] = sid.polarity_scores(summary)
+                article_ana['summary_senti'] = sid.polarity_scores(summary)['compound']
 
-                article_ana['headline_summary_senti'] = sid.polarity_scores(article_ana['headline'] + '. ' + summary)
+                article_ana['headline_summary_senti'] = sid.polarity_scores(article_ana['headline'] + '. ' + summary)['compound']
                 article_ana['search_term_in_headline'] = 1 if ('Google' in article_ana['headline'] or 'GOOGLE' in article_ana['headline']) else 0
                 article_ana['search_term_in_summary'] =  1 if ('Google' in summary or 'GOOGLE' in summary) else 0
+
+                keywords = article['keywords']
+                org_keywords = [word['value'] for word in keywords if word['name'] == 'organizations']
+                org_keyword_rank = 0.0
+                try:
+                    org_keyword_rank = sum([1 for word in org_keywords if ('Google' in word or 'GOOGLE' in word)])/float(len(org_keywords))
+                except ZeroDivisionError:
+                    pass
 
             except Exception as e:  # some 'docs' elements are not articles, e.g. "Interactive Feature", ignore
                 print(str(e))
