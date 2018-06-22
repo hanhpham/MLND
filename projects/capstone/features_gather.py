@@ -8,6 +8,15 @@ Generate CSV containing analyzed and raw article data, along with stock prices, 
 
 """
 
+prices = {} # Date : Closing_price_adjusted_for_splits
+with open ('./data/GOOG.csv') as prices_csv:
+    reader = csv.reader(prices_csv)
+    header = reader.next()
+    date_index, price_index = header.index('Date'), header.index('Close')
+    for row in reader:
+        prices[row[date_index]] = row[price_index]
+prices_csv.close()
+
 outfile = open('./data/ny_times/google/news_features.csv', "w")
 writer = csv.writer(outfile, delimiter=',')
 
@@ -20,7 +29,9 @@ months = [12]
 
 writer.writerow(['id', 'trade_date', 'headline_senti', 'summary_senti',
                  'headline_summary_senti', 'lead_paragraph_senti', 'keyword_in_headline', 
-                 'keyword_in_summary', 'keyword_org_rank', 'section_name', 'type_of_material', 'word_count'])
+                 'keyword_in_summary', 'keyword_org_isMajor', 'keyword_org_rank',
+                 'keyword_org_rank_alt', 'section_name', 'type_of_material',
+                 'print_page', 'word_count'])
 
 for year in years:
     for month in months:
@@ -53,13 +64,28 @@ for year in years:
                 row.append(s['lead_paragraph_senti'])
                 row.append(s['keyword_in_headline'])
                 row.append(s['keyword_in_summary'])
-                row.append(s['keyword_org_rank'])
-                row.append(s['section_name'])
-                row.append(s['type_of_material'])
-                row.append(s['word_count'])
+                # 'keyword_org_isMajor', 'keyword_org_rank'
+                keywords_org = [keyword for keyword in article['keywords'] if (
+                    keyword['name'] == "organizations" and ("Google" in unicode(keyword['value']) or "GOOGLE" in unicode(keyword['value'])))]
+                if len(keywords_org)==1:
+                    row.append(keywords_org[0]['is_major'])
+                    row.append(keywords_org[0]['rank']) 
+                else:
+                    row.append('N')
+                    row.append(0)                       
+                row.append(s['keyword_org_rank_alt'])
+                row.append(article['section_name'])
+                row.append(article['type_of_material']) 
+                row.append(article['print_page'] if article['print_page'] is not None else 0)
+                row.append(article['word_count'])
+                row.append(prices[s['trade_date']])
+
             except Exception as e:
-                print (str(e) + '\n' + str(s))  #hp todo: clearer msg, add stock price, check trade date determination in test output
+                print (str(e) + '\n' + str(s)) 
 
             writer.writerow(row)      
 
 outfile.close()
+
+# hp todo: roll over non-trade days to next trade day
+
