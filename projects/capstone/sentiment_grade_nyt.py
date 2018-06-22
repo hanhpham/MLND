@@ -12,7 +12,7 @@ from datetime import datetime, date, time, timedelta
 """
 Generate analysis of article data, including sentiment scores for selected text. Output JSON file will contain a list of dictionaries of the form:
     [
-        {'_id':*, 'headline':*, 'pub_date':*, 'trade_date':*, 'headline_senti':*, 'summary_senti':*, 'headline_summary_senti':*, 'lead_paragraph_senti':*, 'keyword_in_headline':*, 'keyword_in_summary':* , 'keyword_org_rank':* }, 
+        {'_id':*, 'headline':*, 'pub_date':*, 'trade_date':*, 'headline_senti':*, 'summary_senti':*, 'headline_summary_senti':*, 'lead_paragraph_senti':*, 'keyword_in_headline':*, 'keyword_in_summary':* , 'keyword_org_rank_alt':* }, 
         {...},
         ...
     ]
@@ -30,7 +30,7 @@ Generate analysis of article data, including sentiment scores for selected text.
     - lead_paragraph_senti:''' 
     - keyword_in_headline: 1 if found in headline, 0 otherwise
     - keyword_in_summary: '''
-    - keyword_org_rank: if Google was mentioned under the keyword 'organization' along with N other organizations, the rank is 1/N; 0 if the Google was not mentioned
+    - keyword_org_rank_alt: if Google was mentioned under the keyword 'organization' along with N other organizations, the rank is 1/N; 0 if the Google was not mentioned
 
 """
 
@@ -104,8 +104,8 @@ for year in years:
                     keyword_org_rank = sum([1 for word in org_keywords if ('Google' in word or 'GOOGLE' in word)])/float(len(org_keywords))
                 except ZeroDivisionError:
                     pass
-                article_ana['keyword_org_rank'] = keyword_org_rank
-                
+                article_ana['keyword_org_rank_alt'] = keyword_org_rank
+
             except Exception as e:  # some 'docs' elements are not articles, e.g. "Interactive Feature", ignore
                 print(str(e))
                 f_error_out.write('\n Exception: ' + str(e) + '\n')
