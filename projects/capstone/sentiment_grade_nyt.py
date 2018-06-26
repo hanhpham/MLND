@@ -81,6 +81,8 @@ for year in years:
                 # article is associated with the next trading day if its publication time is on or after the effective trading day's close time (close time - market_reaction_time_min)
                 trade_date = pub_datetime.date() if pub_datetime + \
                     timedelta(seconds=market_reaction_time_min_seconds) < trade_datetime_close else (pub_datetime + timedelta(days=1)).date()
+                if trade_date.weekday() >= 5: # check if it falls on a weekend
+                    trade_date += timedelta(days=(7 - trade_date.weekday()))
                 article_ana['trade_date'] = unicode(trade_date)
                 
                 lead_paragraph = unicode(article['lead_paragraph'])
