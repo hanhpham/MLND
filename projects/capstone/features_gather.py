@@ -22,19 +22,20 @@ prices_csv.close()
 outfile = open('./data/ny_times/google/news_features.csv', "w")
 writer = csv.writer(outfile, delimiter=',')
 
-# years = [2016, 2015, 2014, 2013, 2012, 2011,
-#          2010, 2009, 2008, 2007, 2006, 2005, 2004]
-# months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-years = [2016]
-months = [12]
+years = [2016, 2015, 2014, 2013, 2012, 2011,
+         2010, 2009, 2008, 2007, 2006, 2005, 2004]
+months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+# years = [2016]
+# months = [12]
 
 
 writer.writerow(['id', 'pub_date', 'headline_senti', 'summary_senti',
                  'headline_summary_senti', 'lead_paragraph_senti', 'keyword_in_headline', 
-                 'keyword_in_summary', 'keyword_org_isMajor', 'keyword_org_rank',
+                 'keyword_in_summary', #'keyword_is_major', 'keyword_rank',
                  'keyword_org_rank_alt', 'section_name', 'type_of_material',
                  'print_page', 'word_count', 'trade_date', 'price'])
 
+articles_count = 0
 for year in years:
     for month in months:
 
@@ -54,10 +55,15 @@ for year in years:
         articles = raw_articles_dict['response']['docs']
 
         for article in articles:
+            articles_count +=1
             row = []
             try:
                 id = unicode(article['_id'])
-                s = sentiments_dict[id]
+                try:
+                    s = sentiments_dict[id]
+                except KeyError:
+                    # article doesn't exist in sentiments file probably due missing critical fields, e.g. both 'snippet' and 'abstract' --> skip
+                    continue    
                 row.append(id)
                 row.append(s['pub_date'])              
                 row.append(s['headline_senti'])
@@ -66,17 +72,19 @@ for year in years:
                 row.append(s['lead_paragraph_senti'])
                 row.append(s['keyword_in_headline'])
                 row.append(s['keyword_in_summary'])
-                keywords_org = [keyword for keyword in article['keywords'] if (
-                    keyword['name'] == "organizations" and ("Google" in unicode(keyword['value']) or "GOOGLE" in unicode(keyword['value'])))]
-                if len(keywords_org)==1:
-                    try: #account for article's keyword change: 'is_major' -> 'isMajor'
-                        row.append(keywords_org[0]['is_major'])
-                    except KeyError:
-                        row.append(keywords_org[0]['isMajor'])
-                    row.append(keywords_org[0]['rank']) 
-                else:
-                    row.append('N')
-                    row.append(0)                       
+
+                ## attributes 'rank' and 'is_major'/'isMajor' only became available circa 2013 --> omitting these for uniformity with older format
+                # keywords_org = [keyword for keyword in article['keywords'] if (
+                #     keyword['name'] == "organizations" and ("Google" in unicode(keyword['value']) or "GOOGLE" in unicode(keyword['value'])))]
+                # if len(keywords_org)==1:
+                #     try: #account for article's keyword change: 'is_major' -> 'isMajor'
+                #         row.append(keywords_org[0]['is_major'])
+                #     except KeyError:
+                #         row.append(keywords_org[0]['isMajor'])
+                #     row.append(keywords_org[0]['rank']) 
+                # else:
+                #     row.append('N')
+                #     row.append(0)                       
                 row.append(s['keyword_org_rank_alt'])
                 row.append(article['section_name'])
                 row.append(article['type_of_material']) 
@@ -97,13 +105,12 @@ for year in years:
                         pass
                     tries +=1
                 # row.append(1 if tries>1 else 0) #mark entries where trade_date was adjusted if it falls on a holiday        
-
-            except Exception as e:
-                print (str(e) + '\n' + str(s)) 
-
-            writer.writerow(row)      
+    
+                writer.writerow(row)
+            except KeyError as e:
+                print ('KeyError: ' + str(e) + '\t' + unicode(s['pub_date'] + '| ' + row))
 
 outfile.close()
 
-# hp todo: roll over non-trade days to next trade day
-
+print("Period: " + str(min(months)) + '/' + str(min(years)) + ' - ' + str(max(months)) + '/' + str(max(years)))
+print("Articles processed: " + str(articles_count))
