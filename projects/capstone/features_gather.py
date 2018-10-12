@@ -10,11 +10,11 @@ Generate CSV containing analyzed and raw article data, along with stock prices, 
 
 """
 
-prices = {} # Date : Closing_price_adjusted_for_splits
+prices = {} # Date : Opening price
 with open ('./data/GOOG.csv') as prices_csv:
     reader = csv.reader(prices_csv)
     header = reader.next()
-    date_index, price_index = header.index('Date'), header.index('Close')
+    date_index, price_index = header.index('Date'), header.index('Open')
     for row in reader:
         prices[row[date_index]] = row[price_index]
 prices_csv.close()

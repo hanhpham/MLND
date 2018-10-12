@@ -76,11 +76,11 @@ for year in years:
                 article_ana['pub_date'] = unicode(article['pub_date'])
                 pub_datetime = parse(article_ana['pub_date'])
 
-                # trading day close time for NYSE, NASDAQ = 21:00UTC
-                trade_datetime_close = datetime.combine(pub_datetime.date(), time(21,0, tzinfo=tzutc()))
-                # article is associated with the next trading day if its publication time is on or after the effective trading day's close time (close time - market_reaction_time_min)
-                trade_date = pub_datetime.date() if pub_datetime + \
-                    timedelta(seconds=market_reaction_time_min_seconds) < trade_datetime_close else (pub_datetime + timedelta(days=1)).date()
+                # trading day open time for NYSE, NASDAQ = 14:30 UTC
+                trade_datetime_open = datetime.combine(pub_datetime.date(), time(14,30, tzinfo=tzutc()))
+                # article is associated with the next trading day if its publication time is on or after the effective trading day's open time (open time + market_reaction_time_min)
+                trade_date = pub_datetime.date() if pub_datetime - \
+                    timedelta(seconds=market_reaction_time_min_seconds) < trade_datetime_open else (pub_datetime + timedelta(days=1)).date()
                 if trade_date.weekday() >= 5: # check if it falls on a weekend
                     trade_date += timedelta(days=(7 - trade_date.weekday()))
                 article_ana['trade_date'] = unicode(trade_date)
