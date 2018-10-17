@@ -51,10 +51,17 @@ for year in years:
                 json.dump(article, f_error_out)
                 continue
          
-            search_term_found = False
             for term in search_terms:
-                if (term in main_headline) or (term in snippet) or (term in abstract) or (term in lead_paragraph):
-                    search_term_found = True
+
+                # search by article's metadata tag 'organizations'
+                # keywords = article['keywords']
+                # org_keywords = [word['value'] for word in keywords if word['name'] == 'organizations']
+                # search_term_found = True if (sum([1 for word in org_keywords if term in word]) >= 1) else False
+
+                # search by headline/snippet/abstract/lead_paragraph
+                search_term_found = True if ( (term in main_headline) or (term in snippet) or (term in abstract) or (term in lead_paragraph) ) else False
+
+                if search_term_found:
                     break
 
             if search_term_found:
